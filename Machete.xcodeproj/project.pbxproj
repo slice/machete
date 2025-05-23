@@ -258,6 +258,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = Machete/dyld_cache_format.h;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -267,6 +268,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = Machete/dyld_cache_format.h;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;

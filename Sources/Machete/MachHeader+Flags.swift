@@ -1,10 +1,8 @@
 import Foundation
 
-public struct MachHeader {}
-
 public extension MachHeader {
   // https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/EXTERNAL_HEADERS/mach-o/loader.h#L125
-  struct Flags: RawRepresentable, OptionSet, Hashable {
+  struct Flags: RawRepresentable, OptionSet, Hashable, Sendable {
     public let rawValue: UInt32
 
     public init(rawValue: UInt32) {

@@ -4,7 +4,7 @@ public struct MachHeader {}
 
 public extension MachHeader {
   // https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/EXTERNAL_HEADERS/mach-o/loader.h#L125
-  struct Flags: RawRepresentable, OptionSet {
+  struct Flags: RawRepresentable, OptionSet, Hashable {
     public let rawValue: UInt32
 
     public init(rawValue: UInt32) {
@@ -44,36 +44,34 @@ public extension MachHeader {
 }
 
 public extension MachHeader.Flags {
-  static let allFlagsDescribed: [(MachHeader.Flags, String)] = [
-    (.noUndefinedReferences, "MH_NOUNDEFS"),
-    (.incrementallyLinked, "MH_INCRLINK"),
-    (.dynamicallyLinked, "MH_DYLDLINK"),
-    (.bindingUndefinedReferencesAtLoad, "MH_BINDATLOAD"),
-    (.prebound, "MH_PREBOUND"),
-    (.splitSegments, "MH_SPLIT_SEGS"),
-    (.sharedLibraryLazyInitialization, "MH_LAZY_INIT"),
-    (.twoLevelNamespaceBindings, "MH_TWOLEVEL"),
-    (.forcingFlatNameSpaceBindings, "MH_FORCE_FLAT"),
-    (.noMultipleDefinitionsPerSymbol, "MH_NOMULTIDEFS"),
-    (.withoutFixingPrebinding, "MH_NOFIXPREBINDING"),
-    (.prebindable, "MH_PREBINDABLE"),
-    (.allTwoLevelModulesBound, "MH_ALLMODSBOUND"),
-    (.sectionsDividableViaSymbols, "MH_SUBSECTIONS_VIA_SYMBOLS"),
-    (.canonical, "MH_CANONICAL"),
-    (.containsExternalWeakSymbols, "MH_WEAK_DEFINES"),
-    (.usesWeakSymbols, "MH_BINDS_TO_WEAK"),
-    (.allowStackExecution, "MH_ALLOW_STACK_EXECUTION"),
-    (.rootSafe, "MH_ROOT_SAFE"),
-    (.setUidSafe, "MH_SETUID_SAFE"),
-    (.noReexportedDylibs, "MH_NO_REEXPORTED_DYLIBS"),
-    (.pie, "MH_PIE"),
-    (.deadStrippableDylib, "MH_DEAD_STRIPPABLE_DYLIB"),
-    (.hasTLVDescriptors, "MH_HAS_TLV_DESCRIPTORS"),
-    (.noHeapExecution, "MH_NO_HEAP_EXECUTION"),
-    (.appExtensionSafe, "MH_APP_EXTENSION_SAFE"),
-    (.nListOutOfSyncWithDyldInfo, "MH_NLIST_OUTOFSYNC_WITH_DYLDINFO"),
-    (.simulatorSupported, "MH_SIM_SUPPORT"),
-    (.dylibInCache, "MH_DYLIB_IN_CACHE"),
+  static let allFlagsDescribed: [Self: String] = [
+    .noUndefinedReferences: "MH_NOUNDEFS",
+    .incrementallyLinked: "MH_INCRLINK",
+    .dynamicallyLinked: "MH_DYLDLINK",
+    .bindingUndefinedReferencesAtLoad: "MH_BINDATLOAD",
+    .prebound: "MH_PREBOUND",
+    .splitSegments: "MH_SPLIT_SEGS",
+    .sharedLibraryLazyInitialization: "MH_LAZY_INIT",
+    .twoLevelNamespaceBindings: "MH_TWOLEVEL",
+    .forcingFlatNameSpaceBindings: "MH_FORCE_FLAT",
+    .noMultipleDefinitionsPerSymbol: "MH_NOMULTIDEFS",
+    .withoutFixingPrebinding: "MH_NOFIXPREBINDING",
+    .prebindable: "MH_PREBINDABLE",
+    .allTwoLevelModulesBound: "MH_ALLMODSBOUND",
+    .sectionsDividableViaSymbols: "MH_SUBSECTIONS_VIA_SYMBOLS",
+    .canonical: "MH_CANONICAL",
+    .containsExternalWeakSymbols: "MH_WEAK_DEFINES",
+    .usesWeakSymbols: "MH_BINDS_TO_WEAK",
+    .allowStackExecution: "MH_ALLOW_STACK_EXECUTION",
+    .rootSafe: "MH_ROOT_SAFE",
+    .setUidSafe: "MH_SETUID_SAFE",
+    .noReexportedDylibs: "MH_NO_REEXPORTED_DYLIBS",
+    .pie: "MH_PIE",
+    .deadStrippableDylib: "MH_DEAD_STRIPPABLE_DYLIB",
+    .appExtensionSafe: "MH_APP_EXTENSION_SAFE",
+    .nListOutOfSyncWithDyldInfo: "MH_NLIST_OUTOFSYNC_WITH_DYLDINFO",
+    .simulatorSupported: "MH_SIM_SUPPORT",
+    .dylibInCache: "MH_DYLIB_IN_CACHE",
   ]
 }
 
@@ -85,22 +83,23 @@ extension MachHeader.Flags: CaseIterable {
 
 extension MachHeader.Flags: CustomStringConvertible {
   public var description: String {
-    var names: [String] = []
-    var remaining = self
+    var flagNames: [String] = []
+    var remainingFlags = self
 
-    for (flag, name) in Self.allFlagsDescribed where remaining.contains(flag) {
-      names.append(name)
-      remaining.subtract(flag)
+    for (flag, name) in Self.allFlagsDescribed where remainingFlags.contains(flag) {
+      flagNames.append(name)
+      remainingFlags.subtract(flag)
     }
 
-    if !remaining.isEmpty {
-      names.append(String(format: "0x%08X", remaining.rawValue))
+    // Describe any flags we don't know about.
+    if !remainingFlags.isEmpty {
+      flagNames.append(String(format: "0x%08x", remainingFlags.rawValue))
     }
 
-    if names.isEmpty {
+    if flagNames.isEmpty {
       return "[]"
     } else {
-      return names.joined(separator: " | ")
+      return flagNames.joined(separator: " | ")
     }
   }
 }

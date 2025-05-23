@@ -44,12 +44,14 @@ for (imageIndex, image) in images.enumerated() {
   let firstLoadCmd = machOBase + MemoryLayout<mach_header_64>.stride
   var offset = 0
   while offset < header.sizeofcmds {
-    let cmdPointer = (firstLoadCmd + offset)
-    let loadCmd = cmdPointer.load(as: load_command.self)
-    assert(loadCmd.cmdsize > 0, "load cmd size was zero")
-    assert(loadCmd.cmdsize.isMultiple(of: 8), "load cmd size wasn't multiple of 8")
+    let cmdPtr = (firstLoadCmd + offset)
+    cmdPtr.withMemoryRebound(to: load_command.self, capacity: 1) { cmdPtr in
+      defer { offset += Int(cmdPtr.pointee.cmdsize) }
+      assert(cmdPtr.pointee.cmdsize > 0, "load cmd size was zero")
+      assert(cmdPtr.pointee.cmdsize.isMultiple(of: 8), "load cmd size wasn't multiple of 8")
 
-    print("         \(loadCmd)")
-    offset += Int(loadCmd.cmdsize)
+      let cmd = MachHeader.LoadCommand(unsafeLoadingFrom: cmdPtr)
+      print("         \(cmd)")
+    }
   }
 }

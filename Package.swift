@@ -8,11 +8,17 @@ let package = Package(
   products: [
     .executable(name: "machete", targets: ["Machete"]),
   ],
+  dependencies: [
+    .package(url: "https://github.com/apple/swift-collections", .upToNextMinor(from: "1.2.0")),
+  ],
   targets: [
     .target(name: "CDyld"),
     .executableTarget(
       name: "Machete",
-      dependencies: ["CDyld"],
+      dependencies: [
+        "CDyld",
+        .product(name: "Collections", package: "swift-collections")
+      ],
       swiftSettings: [
         .swiftLanguageMode(.v6),
         .enableUpcomingFeature("ExistentialAny"),

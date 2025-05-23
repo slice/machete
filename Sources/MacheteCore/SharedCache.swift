@@ -9,6 +9,12 @@ public struct SharedCache {
 
 public extension SharedCache {
   var base: UnsafeRawPointer { UnsafeRawPointer(guts) }
+
+  var magic: String {
+    withUnsafeBytes(of: guts.pointee.magic) {
+      $0.withMemoryRebound(to: UInt8.self) { String(cString: $0.baseAddress!) }
+    }
+  }
 }
 
 public extension SharedCache {
@@ -41,13 +47,5 @@ public extension SharedCache {
 
     return SharedCache(unsafeLoadingFrom: sharedCacheBase,
                        slide: allImageInfos.sharedCacheSlide)
-  }
-}
-
-public extension SharedCache {
-  var magic: String {
-    withUnsafeBytes(of: guts.pointee.magic) {
-      $0.withMemoryRebound(to: UInt8.self) { String(cString: $0.baseAddress!) }
-    }
   }
 }

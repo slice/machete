@@ -1,5 +1,5 @@
-public import MachO
 public import Foundation
+public import MachO
 
 public extension MachHeader {
   enum LoadCommand {

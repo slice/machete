@@ -2,6 +2,7 @@
 
 import PackageDescription
 
+// swiftformat:options --wraparguments before-first
 let package = Package(
   name: "Machete",
   platforms: [.macOS(.v14)],
@@ -17,7 +18,7 @@ let package = Package(
       name: "Machete",
       dependencies: [
         "CDyld",
-        .product(name: "Collections", package: "swift-collections")
+        .product(name: "Collections", package: "swift-collections"),
       ],
       swiftSettings: [
         .swiftLanguageMode(.v6),

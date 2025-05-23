@@ -1,0 +1,16 @@
+--indent 2
+--header strip
+
+--enable todos
+
+--wrapparameters after-first
+--wraparguments after-first
+--wrapcollections before-first
+--closingparen balanced
+--callsiteparen balanced
+
+--funcattributes prev-line
+--typeattributes prev-line
+--storedvarattrs prev-line
+--computedvarattrs prev-line
+--complexattrs prev-line

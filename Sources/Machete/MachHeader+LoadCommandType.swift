@@ -4,9 +4,9 @@ import MachO
 // TODO(skip): This is gross and ought to use macros, but swift-syntax compile
 // times are miserable.
 
-extension MachHeader {
+public extension MachHeader {
   // https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/EXTERNAL_HEADERS/mach-o/loader.h#L263
-  public struct LoadCommandType: RawRepresentable, Sendable, Equatable, Hashable {
+  struct LoadCommandType: RawRepresentable, Sendable, Equatable, Hashable {
     public let rawValue: UInt32
 
     /// "After MacOS X 10.1 when a new load command is added that is required to

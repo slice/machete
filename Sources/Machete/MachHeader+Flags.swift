@@ -5,9 +5,9 @@ public import OrderedCollections
 // TODO(skip): This is gross and ought to use macros, but swift-syntax compile
 // times are miserable.
 
-extension MachHeader {
+public extension MachHeader {
   // https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/EXTERNAL_HEADERS/mach-o/loader.h#L125
-  public struct Flags: RawRepresentable, OptionSet, Hashable, Sendable {
+  struct Flags: RawRepresentable, OptionSet, Hashable, Sendable {
     public let rawValue: UInt32
 
     public init(rawValue: UInt32) {
@@ -48,8 +48,8 @@ extension MachHeader {
   }
 }
 
-extension MachHeader.Flags {
-  public static let allFlagsDescribed: OrderedDictionary<Self, String> = [
+public extension MachHeader.Flags {
+  static let allFlagsDescribed: OrderedDictionary<Self, String> = [
     .noUndefinedReferences: "MH_NOUNDEFS",
     .incrementallyLinked: "MH_INCRLINK",
     .dynamicallyLinked: "MH_DYLDLINK",

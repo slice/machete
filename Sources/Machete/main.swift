@@ -1,5 +1,6 @@
 import CDyld
 import Foundation
+import MacheteCore
 import MachO
 
 var info = task_dyld_info_data_t()
@@ -22,43 +23,11 @@ let allImageInfos = allImageInfosPointer.pointee
 let cacheHeader = UnsafePointer<dyld_cache_header>(
   bitPattern: allImageInfos.sharedCacheBaseAddress)!.pointee
 
-let magic = withUnsafeBytes(of: cacheHeader.magic) {
-  $0.withMemoryRebound(to: UInt8.self) { String(cString: $0.baseAddress!) }
-}
+let sharedCache = SharedCache(unsafeLoadingFrom: UnsafeRawPointer(bitPattern: allImageInfos.sharedCacheBaseAddress)!, slide: allImageInfos.sharedCacheSlide)
 
-let formattedBase = String(format: "%x", allImageInfos.sharedCacheBaseAddress)
-let formattedSlide = String(format: "%x", allImageInfos.sharedCacheSlide)
-print(magic, "(\(cacheHeader.imagesCount) images, base: \(formattedBase), slide: \(formattedSlide))")
-let images = UnsafeBufferPointer<dyld_cache_image_info>(start: UnsafePointer(
-  bitPattern: allImageInfos.sharedCacheBaseAddress + UInt(cacheHeader.imagesOffset)),
-count: Int(cacheHeader.imagesCount))
-
-for (imageIndex, image) in images.enumerated() {
-  let path = String(
-    cString: UnsafePointer<CChar>(
-      bitPattern: allImageInfos.sharedCacheBaseAddress + UInt(image.pathFileOffset))!)
-  let paddedImageIndex = String(format: "% 8d % 8x", imageIndex, image.address)
-
-  let machOBase = UnsafeRawPointer(
-    bitPattern: Int(image.address) + Int(allImageInfos.sharedCacheSlide))!
-  let header = machOBase.load(as: mach_header_64.self)
-  assert(header.magic == 0xFEED_FACF, "bad magic")
-
-  let flags = MachHeader.Flags(rawValue: header.flags).description
-  print("\(paddedImageIndex) \(path) \(flags)")
-  defer { print() }
-
-  let firstLoadCmd = machOBase + MemoryLayout<mach_header_64>.stride
-  var offset = 0
-  while offset < header.sizeofcmds {
-    let cmdPtr = (firstLoadCmd + offset)
-    cmdPtr.withMemoryRebound(to: load_command.self, capacity: 1) { cmdPtr in
-      defer { offset += Int(cmdPtr.pointee.cmdsize) }
-      assert(cmdPtr.pointee.cmdsize > 0, "load cmd size was zero")
-      assert(cmdPtr.pointee.cmdsize.isMultiple(of: 8), "load cmd size wasn't multiple of 8")
-
-      let cmd = MachHeader.LoadCommand(unsafeLoadingFrom: cmdPtr)
-      print("         \(cmd)")
-    }
+for image in sharedCache.images {
+  print(image)
+  for lc in image.loadCommands {
+    print("  \(lc)")
   }
 }

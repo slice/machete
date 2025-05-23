@@ -1,4 +1,4 @@
-public import Foundation
+import Foundation
 public import MachO
 
 public extension MachHeader {
@@ -21,10 +21,9 @@ public extension MachHeader.LoadCommand {
 
 public struct DylibLoadCommand {
   public let type: MachHeader.LoadCommandType
+
   /// "library's path name"
   public let name: String
-  /// "library's build time stamp"
-  public let buildTimestamp: Date
 }
 
 public extension DylibLoadCommand {
@@ -34,7 +33,6 @@ public extension DylibLoadCommand {
     // rebound?
     let cmd = pointer.withMemoryRebound(to: dylib_command.self, capacity: 1) { $0.pointee }
     type = MachHeader.LoadCommandType(rawValue: cmd.cmd)
-    buildTimestamp = Date(timeIntervalSince1970: TimeInterval(cmd.dylib.timestamp))
 
     // The dylib name lies relative to the load command.
     let dylibNamePointer = UnsafeRawPointer(pointer) + Int(cmd.dylib.name.offset)

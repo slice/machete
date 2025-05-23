@@ -2,6 +2,14 @@
 
 import PackageDescription
 
+let swiftSettings: [SwiftSetting] = [
+  .swiftLanguageMode(.v6),
+  .enableUpcomingFeature("ExistentialAny"),
+  .enableUpcomingFeature("InternalImportsByDefault"),
+  .enableExperimentalFeature("MemberImportVisibility"),
+  .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release)),
+]
+
 // swiftformat:options --wraparguments before-first
 let package = Package(
   name: "Machete",
@@ -10,22 +18,26 @@ let package = Package(
     .executable(name: "machete", targets: ["Machete"]),
   ],
   dependencies: [
-    .package(url: "https://github.com/apple/swift-collections", .upToNextMinor(from: "1.2.0")),
+    .package(url: "https://github.com/apple/swift-collections", from: "1.2.0"),
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
   ],
   targets: [
     .target(name: "CDyld"),
-    .executableTarget(
-      name: "Machete",
+    .target(
+      name: "MacheteCore",
       dependencies: [
         "CDyld",
         .product(name: "Collections", package: "swift-collections"),
       ],
-      swiftSettings: [
-        .swiftLanguageMode(.v6),
-        .enableUpcomingFeature("ExistentialAny"),
-        .enableUpcomingFeature("InternalImportsByDefault"),
-        .enableExperimentalFeature("MemberImportVisibility"),
-      ]
+      swiftSettings: swiftSettings,
+    ),
+    .executableTarget(
+      name: "Machete",
+      dependencies: [
+        "MacheteCore",
+        .product(name: "Collections", package: "swift-collections"),
+      ],
+      swiftSettings: swiftSettings
     ),
   ]
 )

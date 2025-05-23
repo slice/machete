@@ -19,7 +19,9 @@ let cacheHeader = UnsafePointer<dyld_cache_header>(bitPattern: allImageInfos.sha
 let magic = withUnsafeBytes(of: cacheHeader.magic) {
   $0.withMemoryRebound(to: UInt8.self) { String(cString: $0.baseAddress!) }
 }
-print(magic, "(\(cacheHeader.imagesCount) images)")
+let formattedBase = String(format: "%x", allImageInfos.sharedCacheBaseAddress)
+let formattedSlide = String(format: "%x", allImageInfos.sharedCacheSlide)
+print(magic, "(\(cacheHeader.imagesCount) images, base: \(formattedBase), slide: \(formattedSlide))")
 let images = UnsafeBufferPointer<dyld_cache_image_info>(
   start: UnsafePointer(bitPattern: allImageInfos.sharedCacheBaseAddress + UInt(cacheHeader.imagesOffset)),
   count: Int(cacheHeader.imagesCount)
@@ -27,6 +29,23 @@ let images = UnsafeBufferPointer<dyld_cache_image_info>(
 
 for (imageIndex, image) in images.enumerated() {
   let path = String(cString: UnsafePointer<CChar>(bitPattern: allImageInfos.sharedCacheBaseAddress + UInt(image.pathFileOffset))!)
-  let paddedImageIndex = String(format: "% 8d", imageIndex)
-  print("\(paddedImageIndex)", path)
+  let paddedImageIndex = String(format: "% 8d % 8x", imageIndex, image.address)
+  print("\(paddedImageIndex) \(path)")
+  defer { print() }
+
+  let machOBase = UnsafeRawPointer(bitPattern: Int(image.address) + Int(allImageInfos.sharedCacheSlide))!
+  let headerPointer = machOBase.load(as: mach_header_64.self)
+  assert(headerPointer.magic == 0xfeedfacf, "bad magic")
+
+  let firstLoadCmd = machOBase + MemoryLayout<mach_header_64>.stride
+  var offset = 0
+  while offset < headerPointer.sizeofcmds {
+    let cmdPointer = (firstLoadCmd + offset)
+    let loadCmd = cmdPointer.load(as: load_command.self)
+    assert(loadCmd.cmdsize > 0, "load cmd size was zero")
+    assert(loadCmd.cmdsize.isMultiple(of: 8), "load cmd size wasn't multiple of 8")
+
+    print("         \(loadCmd)")
+    offset += Int(loadCmd.cmdsize)
+  }
 }

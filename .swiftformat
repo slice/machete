@@ -3,8 +3,8 @@
 
 --enable todos
 
---wrapparameters after-first
---wraparguments after-first
+--wrapparameters before-first
+--wraparguments before-first
 --wrapcollections before-first
 --closingparen balanced
 --callsiteparen balanced

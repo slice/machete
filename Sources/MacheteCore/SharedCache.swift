@@ -45,7 +45,9 @@ public extension SharedCache {
       bitPattern: Int(dyldInfo.all_image_info_addr))!.pointee
     let sharedCacheBase = UnsafeRawPointer(bitPattern: allImageInfos.sharedCacheBaseAddress)!
 
-    return SharedCache(unsafeLoadingFrom: sharedCacheBase,
-                       slide: allImageInfos.sharedCacheSlide)
+    return SharedCache(
+      unsafeLoadingFrom: sharedCacheBase,
+      slide: allImageInfos.sharedCacheSlide,
+    )
   }
 }

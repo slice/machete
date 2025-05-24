@@ -41,7 +41,13 @@ let package = Package(
         "Taxonomy",
         .product(name: "Collections", package: "swift-collections"),
         .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        "Pallas",
       ],
+      swiftSettings: swiftSettings,
+    ),
+    .target(
+      name: "Pallas",
+      exclude: ["README.md"],
       swiftSettings: swiftSettings,
     ),
   ],

@@ -1,6 +1,7 @@
-import ArgumentParser
+public import ArgumentParser
 import Foundation
 import MacheteCore
+import Pallas
 
 @main
 struct MacheteTool: AsyncParsableCommand {
@@ -8,22 +9,30 @@ struct MacheteTool: AsyncParsableCommand {
     commandName: "machete",
     abstract: "A reverse engineering multi-tool for Apple platforms.",
     version: "0.0.0",
-    subcommands: [Image.self],
+    subcommands: [Image.self, Pallas.self],
   )
 }
 
 extension MacheteTool {
-  struct Image: AsyncParsableCommand {
+  struct Image: ParsableCommand {
     static let configuration = CommandConfiguration(
       abstract: "Manipulate Mach-O images.",
       subcommands: [List.self],
       aliases: ["i", "im", "img"],
     )
   }
+
+  struct Pallas: ParsableCommand {
+    static let configuration = CommandConfiguration(
+      abstract: "Interact with Pallas (one of Apple's asset metadata servers, used to distribute software updates and other dynamically retrieved content).",
+      subcommands: [Request.self],
+      aliases: ["p"],
+    )
+  }
 }
 
 extension MacheteTool.Image {
-  struct List: AsyncParsableCommand {
+  struct List: ParsableCommand {
     static let configuration = CommandConfiguration(
       abstract: "List Mach-O images in a shared cache.",
       aliases: ["l", "ls"],
@@ -53,7 +62,7 @@ extension MacheteTool.Image {
     """)
     var printLoadCommands = false
 
-    mutating func run() async throws {
+    mutating func run() throws {
       var matchers: [(_ image: SharedCache.Image) -> Bool] = []
 
       if let searchPath {
@@ -87,6 +96,86 @@ extension MacheteTool.Image {
           }
         }
       }
+    }
+  }
+}
+
+extension MacheteTool.Pallas {
+  struct Request: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+      abstract: """
+      Make a request to Pallas and print the extracted JSON response verbatim. Other portions of the response are dropped.
+      """,
+      discussion: """
+      The JSON is not formatted on your behalf, so it's likely worth piping the output to jq(1) or similar.
+      """,
+      aliases: ["r", "req"],
+    )
+
+    @Option(name: [.customLong("type"), .customShort("t")], help: "The requested asset type (AssetType).")
+    var type: AssetType = .embedded
+
+    @Option(name: [.customLong("audience"), .customShort("a")], help: "The requested asset audience (AssetAudience).")
+    var audience: AssetAudience = .iOSRelease
+
+    @Option(name: [.customLong("device"), .customShort("d")], help: "The requested device (ProductType), e.g. Mac15,10")
+    var device: String
+
+    @Option(name: [.customLong("model"), .customShort("m")], help: "The requested model (HWModelStr), e.g. J514mAP")
+    var model: String
+
+    @Option(name: [.customLong("version"), .customShort("v")], help: "The requested version (ProductVersion), e.g. 15.1")
+    var version: String
+
+    @Option(name: [.customLong("build-version"), .customShort("b")], help: "The requested build version (BuildVersion), e.g. 24B83")
+    var buildVersion: String
+
+    mutating func run() async throws {
+      let request = PallasAssetsRequest(
+        type: type,
+        audience: audience,
+        device: device,
+        model: model,
+        version: version,
+        buildVersion: buildVersion,
+      )
+
+      let jsonData = try await request.response()
+      guard let json = String(data: jsonData, encoding: .utf8) else {
+        // TODO: This should print to stderr.
+        print("couldn't decode JSON as UTF-8")
+        throw ExitCode.failure
+      }
+
+      print(json)
+    }
+  }
+}
+
+extension AssetType: ExpressibleByArgument {
+  init?(argument: String) {
+    switch argument {
+    case "embedded": self = .embedded
+    case "embeddedRecovery": self = .embeddedRecovery
+    case "embeddedRapidSecurityResponse": self = .embeddedRapidSecurityResponse
+    case "mac": self = .mac
+    case "macRecovery": self = .macRecovery
+    case "macSystemFallbackRecovery": self = .macSystemFallbackRecovery
+    case "macRapidSecurityResponse": self = .macRapidSecurityResponse
+    default: self.init(rawValue: argument)
+    }
+  }
+}
+
+extension AssetAudience: ExpressibleByArgument {
+  init?(argument: String) {
+    switch argument {
+    case "ios": self = .iOSRelease
+    case "iOSSecurity": self = .iOSSecurity
+    case "iOSGeneric": self = .iOSGeneric
+    case "macOS": self = .macOS
+    case "macGeneric": self = .macGeneric
+    default: self.init(rawValue: argument)
     }
   }
 }

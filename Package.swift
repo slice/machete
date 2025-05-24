@@ -24,6 +24,10 @@ let package = Package(
   targets: [
     .target(name: "CDyld"),
     .target(
+      name: "Taxonomy",
+      swiftSettings: swiftSettings
+    ),
+    .target(
       name: "MacheteCore",
       dependencies: [
         "CDyld",
@@ -35,6 +39,7 @@ let package = Package(
       name: "Machete",
       dependencies: [
         "MacheteCore",
+        "Taxonomy",
         .product(name: "Collections", package: "swift-collections"),
       ],
       swiftSettings: swiftSettings

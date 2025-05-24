@@ -50,5 +50,14 @@ let package = Package(
       exclude: ["README.md"],
       swiftSettings: swiftSettings,
     ),
+    .target(
+      name: "Riverbend",
+      swiftSettings: swiftSettings,
+    ),
+    .testTarget(
+      name: "RiverbendTests",
+      dependencies: ["Riverbend"],
+      swiftSettings: swiftSettings,
+    ),
   ],
 )

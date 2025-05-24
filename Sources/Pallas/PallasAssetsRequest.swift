@@ -59,20 +59,20 @@ public extension PallasAssetsRequest {
       throw PallasError.httpNotOk(response)
     }
 
-    guard let hugeMultipartBase64Blob = String(data: data, encoding: .utf8) else {
+    guard let jwt = String(data: data, encoding: .utf8) else {
       throw PallasError.illFormedResponse(reason: "server response wasn't utf8", response)
     }
-    let pieces = hugeMultipartBase64Blob.split(separator: ".")
-    guard pieces.count == 3 else {
+    let jwtPieces = jwt.split(separator: ".")
+    guard jwtPieces.count == 3 else {
       throw PallasError.illFormedResponse(reason: "server response wasn't comprised of 3 pieces", response)
     }
 
-    let base64JSONResponse = pieces[1].convertingURLSafeBase64ToBase64.paddedBase64
-    guard let jsonResponse = Data(base64Encoded: base64JSONResponse) else {
-      throw PallasError.illFormedResponse(reason: "couldn't decode server response as base64", response)
+    let payloadBase64JSON = jwtPieces[1].convertingURLSafeBase64ToBase64.paddedBase64
+    guard let payloadJSON = Data(base64Encoded: payloadBase64JSON) else {
+      throw PallasError.illFormedResponse(reason: "couldn't decode payload as base64", response)
     }
 
-    return jsonResponse
+    return payloadJSON
   }
 }
 

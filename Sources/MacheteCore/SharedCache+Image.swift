@@ -1,17 +1,18 @@
-import CDyld
+public import CDyld
 import Foundation
 
 public extension SharedCache {
   struct Image {
     /// Metadata about the image as it exists in the shared cache.
-    let info: dyld_cache_image_info
+    @_spi(Guts)
+    public let info: dyld_cache_image_info
 
     /// A pointer where the Mach-O image is reachable.
-    var base: UnsafeRawPointer
+    @_spi(Guts)
+    public var base: UnsafeRawPointer
 
     public private(set) var filePath: String
 
-    // PERF: Copies the path string.
     init(info: dyld_cache_image_info, within cache: SharedCache) {
       self.info = info
 
@@ -30,7 +31,8 @@ public extension SharedCache {
 
 public extension SharedCache.Image {
   // (Assuming 64-bit.)
-  internal var header: mach_header_64 {
+  @_spi(Guts)
+  var header: mach_header_64 {
     base.load(as: mach_header_64.self)
   }
 
@@ -68,6 +70,7 @@ struct LoadCommands: IteratorProtocol, Sequence {
 
 extension SharedCache.Image: CustomStringConvertible {
   public var description: String {
-    "[\(base)] \(filePath) <\(flags)>"
+    let ptr = UnsafeRawPointer(bitPattern: UInt(info.address))!
+    return "[\(ptr)] \(filePath) <\(flags)>"
   }
 }

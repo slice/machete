@@ -1,6 +1,7 @@
 public import ArgumentParser
+import CDyld
 import Foundation
-import MacheteCore
+@_spi(Guts) @_spi(Formatting) import MacheteCore
 import Pallas
 
 @main
@@ -9,7 +10,7 @@ struct MacheteTool: AsyncParsableCommand {
     commandName: "machete",
     abstract: "A reverse engineering multi-tool for Apple platforms.",
     version: "0.0.0",
-    subcommands: [Image.self, Pallas.self],
+    subcommands: [Image.self, Pallas.self, Cache.self],
   )
 }
 
@@ -22,12 +23,81 @@ extension MacheteTool {
     )
   }
 
+  struct Cache: ParsableCommand {
+    static let configuration = CommandConfiguration(
+      abstract: "Manipulate dyld shared caches.",
+      subcommands: [Info.self],
+      aliases: ["c", "cac"],
+    )
+  }
+
   struct Pallas: ParsableCommand {
     static let configuration = CommandConfiguration(
       abstract: "Interact with Pallas (one of Apple's asset metadata servers, used to distribute software updates and other dynamically retrieved content).",
       subcommands: [Request.self],
       aliases: ["p"],
     )
+  }
+}
+
+extension MacheteTool.Cache {
+  struct Info: ParsableCommand {
+    static let configuration = CommandConfiguration(
+      abstract: "Print information about a shared cache.",
+      aliases: ["i"],
+    )
+
+    @Argument(help: "The shared cache to print information about.", completion: .list(["in-memory", "."]))
+    var sharedCache: SharedCacheTarget = .inMemory
+
+    mutating func run() throws {
+      try sharedCache.withResolved { cache in
+        print("\u{1b}[1;36mCache (loaded @ \(cache.base)):\u{1b}[0m")
+
+        printFields(of: cache.guts.pointee) { print in
+          print("Magic", cache.magic)
+          print("Mapping Offset", \.mappingOffset.formattedAddress)
+          print("Mapping Count", \.mappingCount)
+          print("dyld Base Address", \.dyldBaseAddress.formattedAddress)
+          print("Local Symbols Offset", \.localSymbolsOffset.formattedAddress)
+          print("Local Symbols Size", \.localSymbolsSize)
+          print("UUID", UUID(uuid: cache.guts.pointee.uuid).uuidString)
+          print("Type", \.cacheType)
+          print("Subtype", \.cacheSubType)
+          print("Branch Pools Offset", \.branchPoolsOffset)
+          print("Branch Pools Count", \.branchPoolsCount)
+          print("Unslid mach_header Address", \.dyldInCacheMH.formattedAddress)
+          print("Unslid _dyld_start Address", \.dyldInCacheEntry.formattedAddress)
+          print("First Image Text Info Offset", \.imagesTextOffset.formattedAddress)
+          print("Image Text Info Count", \.imagesTextCount)
+          print("Code Signature Blob Offset", \.codeSignatureOffset.formattedAddress)
+          print("Code Signature Blob Size", \.codeSignatureSize.formattedAddress)
+          print("Platform", \.platform)
+          print("Shared Region Start", \.sharedRegionStart.formattedAddress)
+          print("Shared Region Size", \.sharedRegionSize.formattedAddress)
+          print("Unslid Image Array Address", \.dylibsImageArrayAddr.formattedAddress)
+          print("Image Array Size", \.dylibsImageArraySize)
+          print("Subcache Count", \.subCacheArrayCount)
+          print("First Image Info Offset", \.imagesOffset.formattedAddress)
+          print("Image Info Count", \.imagesCount)
+          print("Atlas Offset", \.cacheAtlasOffset.formattedAddress)
+          print("Atlas Size", \.cacheAtlasSize)
+        }
+
+        let subcaches = cache.subcaches
+        let subcacheCount = subcaches.count
+        for (index, subcache) in subcaches.enumerated() {
+          print()
+          print("\u{1b}[1;36mSubcache \(index + 1)/\(subcacheCount):\u{1b}[0m")
+
+          printFields(of: subcache) { print in
+            print("Subcache UUID", \.uuid)
+            print("Subcache VM Offset", \.cacheVMOffset)
+            print("Subcache File Name Suffix", \.fileNameSuffix)
+          }
+        }
+      }
+    }
   }
 }
 
@@ -63,36 +133,40 @@ extension MacheteTool.Image {
     var printLoadCommands = false
 
     mutating func run() throws {
-      var matchers: [(_ image: SharedCache.Image) -> Bool] = []
+      try sharedCache.withResolved { cache in
+        var matchers: [(_ image: SharedCache.Image) -> Bool] = []
 
-      if let searchPath {
-        matchers.append { image in
-          image.filePath.localizedCaseInsensitiveContains(searchPath)
-        }
-      }
-      if let searchLoadCommand {
-        matchers.append { image in
-          image.loadCommands.contains {
-            String(describing: $0).localizedCaseInsensitiveContains(searchLoadCommand)
+        if let searchPath {
+          matchers.append { image in
+            image.filePath.localizedCaseInsensitiveContains(searchPath)
           }
         }
-      }
-      if let searchName {
-        matchers.append { image in
-          guard let lastSlash = image.filePath.lastIndex(of: "/") else {
-            return false
+        if let searchLoadCommand {
+          matchers.append { image in
+            image.loadCommands.contains {
+              String(describing: $0).localizedCaseInsensitiveContains(searchLoadCommand)
+            }
           }
-          let lastSegment = image.filePath[image.filePath.index(after: lastSlash)...]
-          return lastSegment.localizedCaseInsensitiveCompare(searchName) == .orderedSame
         }
-      }
+        if let searchName {
+          matchers.append { image in
+            guard let lastSlash = image.filePath.lastIndex(of: "/") else {
+              return false
+            }
+            let lastSegment = image.filePath[image.filePath.index(after: lastSlash)...]
+            return lastSegment.localizedCaseInsensitiveCompare(searchName) == .orderedSame
+          }
+        }
 
-      for image in SharedCache.inMemory.images where matchers.allSatisfy({ $0(image) }) {
-        print(image)
+        for (index, image) in cache.images.enumerated() {
+          let addr = UnsafeRawPointer(bitPattern: UInt(image.info.address))!
+          guard matchers.allSatisfy({ $0(image) }) else { continue }
+          print(image)
 
-        if printLoadCommands {
-          for loadCommand in image.loadCommands {
-            print("  ", loadCommand)
+          if printLoadCommands {
+            for loadCommand in image.loadCommands {
+              print("  ", loadCommand)
+            }
           }
         }
       }

@@ -1,8 +1,9 @@
 import ArgumentParser
+import MacheteCore
 
 enum SharedCacheTarget {
   case inMemory
-  // TODO: external
+  case filePath(String)
 }
 
 extension SharedCacheTarget: ExpressibleByArgument {
@@ -11,7 +12,18 @@ extension SharedCacheTarget: ExpressibleByArgument {
     case "in-memory", ".":
       self = .inMemory
     default:
-      return nil
+      self = .filePath(argument)
+    }
+  }
+}
+
+extension SharedCacheTarget {
+  func withResolved(_ work: (_ cache: SharedCache) -> Void) throws {
+    switch self {
+    case .inMemory:
+      work(.inMemory)
+    case let .filePath(path):
+      fatalError("unimplemented")
     }
   }
 }

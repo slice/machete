@@ -1,5 +1,5 @@
 import ArgumentParser
-import MacheteCore
+@_spi(Guts) @_spi(Formatting) import MacheteCore
 
 enum SharedCacheTarget {
   case inMemory
@@ -18,12 +18,12 @@ extension SharedCacheTarget: ExpressibleByArgument {
 }
 
 extension SharedCacheTarget {
-  func withResolved(_ work: (_ cache: SharedCache) -> Void) throws {
+  func withResolved(_ work: (_ cache: SharedCache) throws -> Void) rethrows {
     switch self {
     case .inMemory:
-      work(.inMemory)
+      try work(.inMemory)
     case let .filePath(path):
-      fatalError("unimplemented")
+      try SharedCache.withMemoryMapped(file: path) { try work($0) }
     }
   }
 }

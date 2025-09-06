@@ -1,3 +1,5 @@
+import Foundation
+
 @_spi(Formatting)
 public extension FixedWidthInteger {
   var formattedAddress: String {
@@ -12,5 +14,9 @@ public extension FixedWidthInteger {
     }
 
     return "0x\(hexed)"
+  }
+
+  var formattedByteCount: String {
+    formatted(.byteCount(style: .binary))
   }
 }

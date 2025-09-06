@@ -51,9 +51,12 @@ extension MacheteTool.Cache {
     var sharedCache: SharedCacheTarget = .inMemory
 
     mutating func run() throws {
-      try sharedCache.withResolved { cache in
-        print("\u{1b}[1;36mCache (loaded @ \(cache.base)):\u{1b}[0m")
+      let header = { (text: String) -> String in
+        "\u{1b}[1;36m\(text)\u{1b}[0m"
+      }
 
+      func printCache(_ cache: SharedCache) {
+        // TODO: Put some of these behind flags.
         printFields(of: cache.guts.pointee) { print in
           print("Magic", cache.magic)
           print("Mapping Offset", \.mappingOffset.formattedAddress)
@@ -84,17 +87,25 @@ extension MacheteTool.Cache {
           print("Atlas Size", \.cacheAtlasSize)
         }
 
+        let mappings = cache.mappings
+        print()
+        print(header("Mappings (\(mappings.count)):"))
+        for (index, mapping) in mappings.enumerated() {
+          print("Mapping \(index + 1): \(mapping)")
+        }
+      }
+
+      try sharedCache.withResolved { cache in
+        print(header("Cache (@\(cache.base))"))
+        printCache(cache)
+
         let subcaches = cache.subcaches
-        let subcacheCount = subcaches.count
         for (index, subcache) in subcaches.enumerated() {
           print()
-          print("\u{1b}[1;36mSubcache \(index + 1)/\(subcacheCount):\u{1b}[0m")
+          print(header("Subcache \(index + 1)/\(subcaches.count) (+\(subcache.cacheVMOffset.formattedAddress)):"))
 
-          printFields(of: subcache) { print in
-            print("Subcache UUID", \.uuid)
-            print("Subcache VM Offset", \.cacheVMOffset)
-            print("Subcache File Name Suffix", \.fileNameSuffix)
-          }
+          let subcacheBase = cache.base + subcache.cacheVMOffset
+          printCache(SharedCache(unsafePointingTo: subcacheBase, slide: Int(bitPattern: subcacheBase)))
         }
       }
     }

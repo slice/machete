@@ -37,7 +37,7 @@ public extension SharedCache {
 }
 
 public extension SharedCache {
-  init(unsafeLoadingFrom base: consuming UnsafeRawPointer, slide: Int) {
+  init(unsafePointingTo base: consuming UnsafeRawPointer, slide: Int) {
     guts = base.bindMemory(to: dyld_cache_header.self, capacity: 1)
     self.slide = slide
   }
@@ -65,16 +65,8 @@ public extension SharedCache {
     let sharedCacheBase = UnsafeRawPointer(bitPattern: allImageInfos.sharedCacheBaseAddress)!
 
     return SharedCache(
-      unsafeLoadingFrom: sharedCacheBase,
+      unsafePointingTo: sharedCacheBase,
       slide: Int(allImageInfos.sharedCacheSlide),
     )
-  }
-}
-
-public extension SharedCache {
-  var subcaches: [Subcache] {
-    let firstSubcache = (base + Int(guts.pointee.subCacheArrayOffset)).bindMemory(to: dyld_subcache_entry.self, capacity: 1)
-    let subcaches = UnsafeBufferPointer(start: firstSubcache, count: Int(guts.pointee.subCacheArrayCount))
-    return subcaches.map { Subcache(guts: $0) }
   }
 }

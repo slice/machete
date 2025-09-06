@@ -30,6 +30,22 @@ public extension SharedCache.Subcache {
         len = ptr.copyBytes(to: buf, count: maxSuffixLength)
       }
     }
-    return String(decoding: bytes.prefix(while: { $0 != 0 }), as: UTF8.self)
+    return String(decoding: bytes, as: UTF8.self)
+  }
+}
+
+extension SharedCache.Subcache: CustomStringConvertible {
+  public var description: String {
+    "[\(uuid)] @\(cacheVMOffset.formattedAddress) \"\(fileNameSuffix)\""
+  }
+}
+
+public extension SharedCache {
+  var subcaches: [Subcache] {
+    let count = Int(guts.pointee.subCacheArrayCount)
+    let firstSubcache = (base + Int(guts.pointee.subCacheArrayOffset)).bindMemory(to: dyld_subcache_entry.self, capacity: count)
+
+    let subcaches = UnsafeBufferPointer(start: firstSubcache, count: count)
+    return subcaches.map { Subcache(guts: $0) }
   }
 }

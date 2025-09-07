@@ -1,6 +1,8 @@
 import ArgumentParser
 @_spi(Guts) @_spi(Formatting) import MacheteCore
 
+// TODO: Support some spiffy syntax for remote versions. Like "26.0" or something.
+
 enum SharedCacheTarget {
   case inMemory
   case filePath(String)

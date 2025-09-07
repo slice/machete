@@ -39,38 +39,26 @@ public extension SharedCache.Image {
   var flags: MachHeader.Flags {
     MachHeader.Flags(rawValue: header.flags)
   }
-
-  var loadCommands: some Sequence<MachHeader.LoadCommand> {
-    let firstLoadCommand = base + MemoryLayout<mach_header_64>.stride
-    return LoadCommands(startingAt: firstLoadCommand, byteSizeOfAllCommands: Int(header.sizeofcmds))
-  }
-}
-
-struct LoadCommands: IteratorProtocol, Sequence {
-  typealias Element = MachHeader.LoadCommand
-
-  var first: UnsafeRawPointer
-  var offset: Int = 0
-  let byteSizeOfAllCommands: Int
-
-  init(startingAt firstLoadCommand: UnsafeRawPointer, byteSizeOfAllCommands: Int) {
-    first = firstLoadCommand
-    self.byteSizeOfAllCommands = byteSizeOfAllCommands
-  }
-
-  mutating func next() -> MachHeader.LoadCommand? {
-    guard offset < byteSizeOfAllCommands else { return nil }
-
-    let current = (first + offset).bindMemory(to: load_command.self, capacity: 1)
-    defer { offset += Int(current.pointee.cmdsize) }
-
-    return MachHeader.LoadCommand(unsafeLoadingFrom: current)
-  }
 }
 
 extension SharedCache.Image: CustomStringConvertible {
   public var description: String {
     let ptr = UnsafeRawPointer(bitPattern: UInt(info.address))!
     return "[\(ptr)] \(filePath) <\(flags)>"
+  }
+}
+
+extension SharedCache {
+  var imageCount: Int {
+    Int(guts.pointee.imagesCount)
+  }
+
+  var firstImage: UnsafePointer<dyld_cache_image_info> {
+    (base + Int(guts.pointee.imagesOffset)).bindMemory(to: dyld_cache_image_info.self, capacity: imageCount)
+  }
+
+  public var images: some RandomAccessCollection<SharedCache.Image> {
+    UnsafeBufferPointer<dyld_cache_image_info>(start: firstImage, count: imageCount)
+      .map { SharedCache.Image(info: $0, within: self) }
   }
 }

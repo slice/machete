@@ -95,7 +95,7 @@ extension MacheteTool.Cache {
         }
       }
 
-      try sharedCache.withResolved { cache in
+      sharedCache.withResolved { cache in
         print(header("Cache (@\(cache.base))"))
         printCache(cache)
 
@@ -144,7 +144,7 @@ extension MacheteTool.Image {
     var printLoadCommands = false
 
     mutating func run() throws {
-      try sharedCache.withResolved { cache in
+      sharedCache.withResolved { cache in
         var matchers: [(_ image: SharedCache.Image) -> Bool] = []
 
         if let searchPath {
@@ -169,8 +169,7 @@ extension MacheteTool.Image {
           }
         }
 
-        for (index, image) in cache.images.enumerated() {
-          let addr = UnsafeRawPointer(bitPattern: UInt(image.info.address))!
+        for image in cache.images {
           guard matchers.allSatisfy({ $0(image) }) else { continue }
           print(image)
 
